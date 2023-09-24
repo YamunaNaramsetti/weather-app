@@ -1,43 +1,115 @@
-import React,{useState} from 'react'
 
-const App = () => {
-  
-  const [city,setCity] = useState("");
-  const [result,setResult] = useState("");
-  const changeHandler = e =>{
-    setCity(e.target.value);
-  }
-  const submitHandler = e =>{
+import "./App.css";
+import {Circles} from "react-loader-spinner"
+
+import React, { useState, useEffect } from "react";
+
+
+
+const API_KEY = "1be98b1227ef6beaa1048d6245ca0842";
+const BASE_URL = "https://api.openweathermap.org/data/2.5/";
+
+export default function WeatherApp() {
+  const [location, setLocation] = useState("");
+  const [weatherData, setWeatherData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const handleLocationSubmit = (e) => {
     e.preventDefault();
-    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=d885aa1d783fd13a55050afeef620fcb`).then(
-      response=> response.json()).then(
-        data => {
-          const kelvin = data.main.temp;
-          const celcius = kelvin - 273.15;
-          setResult("Temperature at "+city+"\n"+Math.round(celcius)+"°C");
+    setIsLoading(true);
+    setWeatherData(null);
+  };
+
+  useEffect(() => {
+    if (!location || !isLoading) {
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          `${BASE_URL}weather?q=${location}&appid=${API_KEY}&units=metric`
+        );
+        const data = await response.json();
+        if (data.cod === "404") {
+          setErrorMessage(data.message);
+        } else {
+          setWeatherData(data);
+          setErrorMessage(null);
         }
-      ).catch(error => console.log(error))
-      setCity("");
-  }
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [location, isLoading]);
 
   return (
-    <div>
-      <center>
-        <div className="card">
-          <div className="card-body">
-            <h4 className="card-title">Weather App</h4>
-            <form onSubmit={submitHandler}>
-              <input size="30" type="text" name="city" onChange={changeHandler} value={city}/> <br /><br />
-              <input type="submit" value="Get Temperature" />
-            </form><br /> <br />
+    <>
+      <div className="container">
+      <div className="card-cont">
+
+      <h1 className="heading">Weather App</h1>
+        <form onSubmit={handleLocationSubmit}>
+        <div className="inp-cont">
+          <div>
+          
+            
+            <input
+              type="text"
+              placeholder="e.g. London, UK"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="btn-cont">
+          <button variant="primary" type="submit">
+            Search
+          </button>
+
+          </div>
+          </div>
+          
+        </form>
+        {isLoading && (
+  <div className="spinner-btn text-center">
+  <Circles animation="border" variant="success" />
+</div>
+
+)}
+        {errorMessage && <p variant="danger">{errorMessage}</p>}
+        {weatherData && (
+            <div className="result">
             <div>
-               <h1>{result}</h1> 
+              <div>
+                <h2>
+                  
+                  {weatherData.name}, {weatherData.sys.country}
+                </h2>
+              
+              <h1 className="cli">
+                {weatherData.weather[0].description}
+              </h1>
+              </div>
+              <div className="parameters">
+              <p>Temperature: {Math.round(weatherData.main.temp)} °C</p>
+              <p>Feels like: {Math.round(weatherData.main.feels_like)} °C</p>
+              <p>Humidity: {weatherData.main.humidity}%</p>
+              <p>Pressure: {weatherData.main.pressure} hPa</p>
+              <p>Wind speed: {Math.round(weatherData.wind.speed)} m/s</p>
+              </div>
+
             </div>
           </div>
-        </div>
-      </center>
-    </div>
-  )
-}
+          
+        )}
+      </div>
+      </div>
 
-export default App
+    </>
+  );
+}
